@@ -24,12 +24,19 @@ contract ERC20 {
     mapping (address => uint)                       public  balanceOf;
     mapping (address => mapping (address => uint))  public  allowance;
 
+    address[] public defaultOperators;
+    mapping(address => bool) public isDefaultOperator;
+    
     event Approval(address indexed src, address indexed guy, uint wad);
     event Transfer(address indexed src, address indexed dst, uint wad);
 
-    constructor(string symbol_, string name_) public {
+    constructor(string symbol_, string name_, address[] defaultOperators_) public {
         symbol = symbol_;
         name = name_;
+        defaultOperators = defaultOperators_;
+        for (var i; i < defaultOperators_.length; i++) {
+          isDefaultOperator[defaultOperators_[i]] = true;
+        }
     }
 
     function approve(address guy, uint wad) public returns (bool) {
@@ -44,7 +51,9 @@ contract ERC20 {
         public returns (bool)
     {
         require(balanceOf[src] >= wad);
-        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
+        if (src != msg.sender
+            && allowance[src][msg.sender] != uint(-1)
+            && !isDefaultOperator[msg.sender]) {
             require(allowance[src][msg.sender] >= wad);
             allowance[src][msg.sender] -= wad;
         }
