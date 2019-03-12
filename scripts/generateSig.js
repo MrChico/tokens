@@ -2,7 +2,7 @@ const ethUtil = require('ethereumjs-util');
 const sigUtil = require('eth-sig-util');
 const utils = sigUtil.TypedDataUtils;
 
-//Our lad Cal wants to relay 2 dai to del, paying a 1 dai fee to msg.sender
+//Our lad Cal wants to send 2 dai to del, by signing a cheque and paying a 1 dai fee to msg.sender
 
 const calprivKeyHex = '4af1bceebf7f3634ec3cff8a2c38e51178d5d4ce585c52d6043e5e2cc3418bb0'
 const calprivKey = new Buffer(calprivKeyHex, 'hex')
@@ -20,12 +20,12 @@ let typedData = {
           { name: 'verifyingContract', type: 'address' },
       ],
       Cheque: [
-          { name: 'token', type: 'address' },
           { name: 'sender', type: 'address' },
           { name: 'receiver', type: 'address' },
           { name: 'amount', type: 'uint256' },
           { name: 'fee', type: 'uint256' },
           { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
       ],
   },
   primaryType: 'Cheque',
@@ -33,16 +33,16 @@ let typedData = {
       name: 'Dai Automated Clearing House',
       version: '1',
       chainId: 1,
-      verifyingContract: '0xdeadbeef',
+      verifyingContract: '0xdb356e865aaafa1e37764121ea9e801af13eeb83', //in hevm
   },
   message: {
-      token: '0x'+dai.toString('hex'),
-      sender: '0x'+cal.toString('hex'),
       sender: '0x'+cal.toString('hex'),
       receiver: '0x'+del.toString('hex'),
       amount: 2,
       fee: 1,
       nonce: 0,
+      token: '0x'+dai.toString('hex'),
+      deadline: 0
   },
 };
 
