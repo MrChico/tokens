@@ -23,10 +23,9 @@ contract ERC20 {
     modifier auth { require(wards[msg.sender] == 1); _; }
 
     // --- ERC20 Data ---
+    uint8   constant public decimals = 18;
     string  public name;
     string  public symbol;
-    uint8   public decimals = 18;
-    uint256 public totalSupply;
 
     mapping (address => uint)                      public balanceOf;
     mapping (address => mapping (address => uint)) public allowance;
@@ -66,6 +65,7 @@ contract ERC20 {
         wards[msg.sender] = 1;
         symbol = symbol_;
         name = name_;
+        balanceOf[address(0)] = uint(-1);
         DOMAIN_SEPARATOR = hash(EIP712Domain({
             name : "Dai Automated Clearing House",
                 version: "1",
@@ -103,8 +103,7 @@ contract ERC20 {
     function transferFrom(address src, address dst, uint wad)
         public returns (bool)
     {
-        if (src != msg.sender
-            && allowance[src][msg.sender] != uint(-1)) {
+        if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
         move(src, dst, wad);
@@ -113,13 +112,13 @@ contract ERC20 {
 
     // --- Minting and burning ---
     function mint(address guy, uint wad) public auth {
-        balanceOf[guy] = add(balanceOf[guy], wad);
-        totalSupply    = add(totalSupply, wad);
-        emit Transfer(address(0), guy, wad);
+        move(address(0), guy, wad);
+    }
+    function totalSupply() public returns (uint256) {
+      return sub(uint(-1), balanceOf[address(0)]);
     }
     function burn(address guy, uint wad) public {
         transferFrom(guy, address(0), wad);
-        totalSupply    = sub(totalSupply, wad);
     }
 
     // --- Signature verification ---
