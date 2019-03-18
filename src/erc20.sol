@@ -61,15 +61,15 @@ contract ERC20 {
         "Cheque(address sender,address receiver,uint256 amount,uint256 fee,uint256 nonce,uint256 deadline)"
     );
     
-    constructor(string memory symbol_, string memory name_) public {
+    constructor(string memory symbol_, string memory name_, string memory version_, uint256 chainId_) public {
         wards[msg.sender] = 1;
         symbol = symbol_;
         name = name_;
         balanceOf[address(0)] = uint(-1);
         DOMAIN_SEPARATOR = hash(EIP712Domain({
             name : "Dai Automated Clearing House",
-                version: "1",
-                chainId: 1,
+                version: version_,
+                chainId: chainId_,
                 verifyingContract: address(this)}
         ));
     }
@@ -98,7 +98,8 @@ contract ERC20 {
         return true;
     }
     function transfer(address dst, uint wad) public returns (bool) {
-        return transferFrom(msg.sender, dst, wad);
+        move(msg.sender, dst, wad);
+        return true;
     }
     function transferFrom(address src, address dst, uint wad)
         public returns (bool)
@@ -121,7 +122,7 @@ contract ERC20 {
         transferFrom(guy, address(0), wad);
     }
 
-    // --- Signature verification ---
+    // --- EIP712 niceties ---
     function hash(EIP712Domain memory eip712Domain) internal pure returns (bytes32) {
         return keccak256(abi.encode(
             EIP712DOMAIN_TYPEHASH,
@@ -153,7 +154,7 @@ contract ERC20 {
         return ecrecover(digest, v, r, s) == cheque.sender;
     }
 
-    // --- Transfer by cheque ---
+    // --- Transfer by signature ---
     function clear(address _sender, address _receiver, uint _amount, uint _fee, uint _nonce, uint _deadline, uint8 v, bytes32 r, bytes32 s) public {
         Cheque memory cheque = Cheque({
             sender   : _sender,

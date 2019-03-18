@@ -112,7 +112,7 @@ contract ERC20Test is DSTest {
     }
 
     function createToken() internal returns (ERC20) {
-        return new ERC20("$","TST");
+        return new ERC20("$","TST", "1", 1);
     }
 
     function testSetupPrecondition() public {
