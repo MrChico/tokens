@@ -32,7 +32,11 @@ contract ERC20 {
 
     event Approval(address indexed src, address indexed guy, uint wad);
     event Transfer(address indexed src, address indexed dst, uint wad);
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> use approval instead
     // --- Permit handling data ---
     mapping (address => uint256) public nonces;
 
@@ -42,7 +46,11 @@ contract ERC20 {
         uint256 chainId;
         address verifyingContract;
     }
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> use approval instead
     struct Permit {
         address spender;
         uint256 nonce;
