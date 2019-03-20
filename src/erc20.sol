@@ -32,8 +32,8 @@ contract ERC20 {
 
     event Approval(address indexed src, address indexed guy, uint wad);
     event Transfer(address indexed src, address indexed dst, uint wad);
-    
-    // --- Cheque handling data ---
+
+    // --- Permit handling data ---
     mapping (address => uint256) public nonces;
 
     struct EIP712Domain {
@@ -42,25 +42,22 @@ contract ERC20 {
         uint256 chainId;
         address verifyingContract;
     }
-    
-    struct Cheque {
-        address sender;
-        address receiver;
-        uint256 amount;
-        uint256 fee;
+
+    struct Permit {
+        address spender;
         uint256 nonce;
         uint256 deadline;
     }
-    
+
     bytes32 public DOMAIN_SEPARATOR;
     bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
         "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
     );
 
-    bytes32 constant public CHEQUE_TYPEHASH = keccak256(
-        "Cheque(address sender,address receiver,uint256 amount,uint256 fee,uint256 nonce,uint256 deadline)"
+    bytes32 constant public permit_TYPEHASH = keccak256(
+        "Permit(address spender,uint256 nonce,uint256 deadline)"
     );
-    
+
     constructor(string memory symbol_, string memory name_, string memory version_, uint256 chainId_) public {
         wards[msg.sender] = 1;
         symbol = symbol_;
@@ -74,7 +71,7 @@ contract ERC20 {
         ));
     }
 
-    // --- Math --- 
+    // --- Math ---
     function add(uint x, uint y) internal pure returns (uint z) {
         z = x + y;
         require(z >= x, "math-add-overflow");
@@ -91,7 +88,7 @@ contract ERC20 {
         balanceOf[dst] = add(balanceOf[dst], wad);
         emit Transfer(src, dst, wad);
     }
-    
+
     function approve(address guy, uint wad) public returns (bool) {
         allowance[msg.sender][guy] = wad;
         emit Approval(msg.sender, guy, wad);
@@ -133,42 +130,39 @@ contract ERC20 {
         ));
     }
 
-    function hash(Cheque memory cheque) internal pure returns (bytes32) {
+    function hash(Permit memory permit) internal pure returns (bytes32) {
         return keccak256(abi.encode(
-            CHEQUE_TYPEHASH,
-            cheque.sender,
-            cheque.receiver,
-            cheque.amount,
-            cheque.fee,
-            cheque.nonce,
-            cheque.deadline
+            permit_TYPEHASH,
+            permit.spender,
+            permit.nonce,
+            permit.deadline
         ));
     }
 
-    function verify(Cheque memory cheque, uint8 v, bytes32 r, bytes32 s) internal view returns (bool) {
+    function recover(Permit memory permit, uint8 v, bytes32 r, bytes32 s) internal view returns (bool) {
         bytes32 digest = keccak256(abi.encodePacked(
                         "\x19\x01",
                         DOMAIN_SEPARATOR,
-                        hash(cheque)
+                        hash(permit)
         ));
-        return ecrecover(digest, v, r, s) == cheque.sender;
+        return ecrecover(digest, v, r, s);
     }
 
-    // --- Transfer by signature ---
-    function clear(address _sender, address _receiver, uint _amount, uint _fee, uint _nonce, uint _deadline, uint8 v, bytes32 r, bytes32 s) public {
-        Cheque memory cheque = Cheque({
-            sender   : _sender,
-            receiver : _receiver,
-            amount   : _amount,
-            fee      : _fee,
-            nonce    : _nonce,
-            deadline : _deadline
+    function verify(Permit memory permit, uint8 v, bytes32 r, bytes32 s) internal view returns (bool) {
+        return recover(permit, v, r, s) == permit.spender;
+    }
+
+    // --- Approval by signature ---
+    function allow(address spender, uint nonce_, uint deadline_, uint8 v, bytes32 r, bytes32 s) public {
+        Permit memory permit = Permit({
+            spender  : spender_,
+            nonce    : nonce_,
+            deadline : deadline_
         });
-        require(verify(cheque, v, r, s), "invalid cheque");
-        require(_deadline == 0 || now <= _deadline, "cheque expired");
-        require(_nonce == nonces[_sender], "invalid nonce");
-        move(_sender, msg.sender, _fee);
-        move(_sender, _receiver, _amount);
-        nonces[_sender]++;
+        require(verify(permit, v, r, s), "invalid permit");
+        require(deadline_ == 0 || now <= deadline_, "permit expired");
+        require(nonce_ == nonces[spender_], "invalid nonce");
+        nonces[spender_]++;
+        allowance[holder][spender_] = uint(-1);
   }
 }
