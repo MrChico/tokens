@@ -32,11 +32,7 @@ contract ERC20 {
 
     event Approval(address indexed src, address indexed guy, uint wad);
     event Transfer(address indexed src, address indexed dst, uint wad);
-<<<<<<< HEAD
 
-=======
-
->>>>>>> use approval instead
     // --- Permit handling data ---
     mapping (address => uint256) public nonces;
 
@@ -46,15 +42,8 @@ contract ERC20 {
         uint256 chainId;
         address verifyingContract;
     }
-<<<<<<< HEAD
-
-=======
-
->>>>>>> use approval instead
     struct Permit {
         address spender;
-        uint256 nonce;
-        uint256 deadline;
     }
 
     bytes32 public DOMAIN_SEPARATOR;
@@ -63,7 +52,7 @@ contract ERC20 {
     );
 
     bytes32 constant public permit_TYPEHASH = keccak256(
-        "Permit(address spender,uint256 nonce,uint256 deadline)"
+        "Permit(address spender)"
     );
 
     constructor(string memory symbol_, string memory name_, string memory version_, uint256 chainId_) public {
@@ -142,8 +131,6 @@ contract ERC20 {
         return keccak256(abi.encode(
             permit_TYPEHASH,
             permit.spender,
-            permit.nonce,
-            permit.deadline
         ));
     }
 
@@ -161,16 +148,11 @@ contract ERC20 {
     }
 
     // --- Approval by signature ---
-    function allow(address spender, uint nonce_, uint deadline_, uint8 v, bytes32 r, bytes32 s) public {
+    function allow(address spender_, uint8 v, bytes32 r, bytes32 s) public {
         Permit memory permit = Permit({
             spender  : spender_,
-            nonce    : nonce_,
-            deadline : deadline_
         });
         require(verify(permit, v, r, s), "invalid permit");
-        require(deadline_ == 0 || now <= deadline_, "permit expired");
-        require(nonce_ == nonces[spender_], "invalid nonce");
-        nonces[spender_]++;
         allowance[holder][spender_] = uint(-1);
   }
 }
