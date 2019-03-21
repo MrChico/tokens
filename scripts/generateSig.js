@@ -19,41 +19,38 @@ let typedData = {
           { name: 'chainId', type: 'uint256' },
           { name: 'verifyingContract', type: 'address' },
       ],
-      Cheque: [
-          { name: 'sender', type: 'address' },
-          { name: 'receiver', type: 'address' },
-          { name: 'amount', type: 'uint256' },
-          { name: 'fee', type: 'uint256' },
+    Permit: [
+          { name: 'holder', type: 'address' }, 
+          { name: 'spender', type: 'address' },
           { name: 'nonce', type: 'uint256' },
           { name: 'deadline', type: 'uint256' },
+          { name: 'allowed', type: 'bool' },
       ],
   },
-  primaryType: 'Cheque',
+  primaryType: 'Permit',
   domain: {
-      name: 'Dai Automated Clearing House',
+      name: 'Dai Semi-Automated Permit Office',
       version: '1',
       chainId: 1,
       verifyingContract: '0xdb356e865aaafa1e37764121ea9e801af13eeb83', //in hevm
   },
   message: {
-      sender: '0x'+cal.toString('hex'),
-      receiver: '0x'+del.toString('hex'),
-      amount: 2,
-      fee: 1,
+      holder: '0x'+cal.toString('hex'),
+      spender: '0x'+del.toString('hex'),
       nonce: 0,
-      token: '0x'+dai.toString('hex'),
-      deadline: 0
+      deadline: 0,
+      allowed: true
   },
 };
 
 let hash = ethUtil.bufferToHex(utils.hashStruct('EIP712Domain', typedData.domain, typedData.types))
 console.log('EIP712DomainHash: ' + hash);
-hash = ethUtil.bufferToHex(utils.hashType('Cheque', typedData.types))
-console.log('Cheque Typehash: ' + hash);
-hash = ethUtil.bufferToHex(utils.hashStruct('Cheque', typedData.message, typedData.types))
-console.log('Cheque (from cal to del) hash: ' + hash);
+hash = ethUtil.bufferToHex(utils.hashType('Permit', typedData.types))
+console.log('Permit Typehash: ' + hash);
+hash = ethUtil.bufferToHex(utils.hashStruct('Permit', typedData.message, typedData.types))
+console.log('Permit (from cal to del) hash: ' + hash);
 const sig = sigUtil.signTypedData(calprivKey, { data: typedData });
-console.log('signed check: ' + sig);
+console.log('signed permit: ' + sig);
 
 let r = sig.slice(0,66);
 let s = '0x'+ sig.slice(66,130);
