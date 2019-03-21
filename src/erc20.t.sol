@@ -97,9 +97,9 @@ contract ERC20Test is DSTest {
     uint deadline = 0;
     address cal = 0x29C76e6aD8f28BB1004902578Fb108c507Be341b;
     address del = 0xdd2d5D3f7f1b35b7A0601D6A00DbB7D44Af58479;
-    uint8 v = 27;
-    bytes32 r = 0x9af9bf40502b77c70deb6f7e705c2e9c0d88551fca3f62b9d3963156addb8f5f;
-    bytes32 s = 0x28c950d2a9ca119fe3dd5a1916f311aa01ff89c15624f0e82cecc2a4233e396e;
+    uint8 v = 28;
+    bytes32 r = 0xdcd513755b31011b12c376a5cc92c67c83a4876815c22ee280bcf2166df01c6d;
+    bytes32 s = 0x327b7393d981f5d9c609d756dcbd2f9d06109f3b7d6d2af2e60414e123ef55c3;
 
 
     function setUp() public {
@@ -270,20 +270,16 @@ contract ERC20Test is DSTest {
         assertEq(address(token), address(0xDB356e865AAaFa1e37764121EA9e801Af13eEb83));
     }
 
-    function test_clear() public {
+    function test_record() public {
         assertEq(token.nonces(cal),0);
-        assertEq(token.balanceOf(cal),100);
-        assertEq(token.balanceOf(del),0);
-        assertEq(token.balanceOf(address(this)),initialBalanceThis);
-        token.clear(cal, del, 2, 1, 0, 0, v, r, s);
-        assertEq(token.balanceOf(cal),97);
-        assertEq(token.balanceOf(del),2);
-        assertEq(token.balanceOf(address(this)),initialBalanceThis + 1);
+        assertEq(token.allowance(cal, del),0);
+        token.record(cal, del, 0, 0, true, v, r, s);
+        assertEq(token.allowance(cal, del),uint(-1));
         assertEq(token.nonces(cal),1);
     }
 
     function testFailReplay() public {
-        token.clear(cal, del, 2, 1, 0, 0, v, r, s);
-        token.clear(cal, del, 2, 1, 0, 0, v, r, s);
+      token.record(cal, del, 0, 0, true, v, r, s);
+      token.record(cal, del, 0, 0, true, v, r, s);
     }
 }

@@ -46,7 +46,7 @@ contract ERC20 {
     // --- EIP712 niceties ---
     bytes32 public DOMAIN_SEPARATOR;
     bytes32 public permit_TYPEHASH = keccak256(
-        "Permit(address spender,uint256 nonce,uint256 deadline,bool allowed)"
+        "Permit(address holder,address spender,uint256 nonce,uint256 deadline,bool allowed)"
     );
 
     constructor(string memory symbol_, string memory name_, string memory version_, uint256 chainId_) public {
@@ -63,7 +63,7 @@ contract ERC20 {
     }
 
     // --- Approval by signature ---
-    function record(address spender, uint256 nonce, uint256 deadline,
+    function record(address holder, address spender, uint256 nonce, uint256 deadline,
                     bool allowed, uint8 v, bytes32 r, bytes32 s) public
     {
         bytes32 digest =
@@ -71,14 +71,15 @@ contract ERC20 {
                 "\x19\x01",
                 DOMAIN_SEPARATOR,
                 keccak256(abi.encode(permit_TYPEHASH,
+                                     holder,
                                      spender,
                                      nonce,
                                      deadline,
                                      allowed))
         ));
-        address holder = ecrecover(digest, v, r, s);
-        require(deadline == 0 || deadline < now);
-        require(nonce == ++nonces[holder]);
+        require(holder == ecrecover(digest, v, r, s), "invalid permit");
+        require(deadline == 0 || deadline < now, "permit expied");
+        require(nonce == nonces[holder]++, "invalid nonce");
         uint wad = allowed ? uint(-1) : 0;
         allowance[holder][spender] = wad;
         emit Approval(holder, spender, wad);
