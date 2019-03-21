@@ -26,73 +26,70 @@ contract ERC20 {
     uint8   constant public decimals = 18;
     string  public name;
     string  public symbol;
+    uint256 public totalSupply;
 
     mapping (address => uint)                      public balanceOf;
     mapping (address => mapping (address => uint)) public allowance;
+    mapping (address => uint)                      public nonces;
 
     event Approval(address indexed src, address indexed guy, uint wad);
     event Transfer(address indexed src, address indexed dst, uint wad);
 
-    // --- Permit handling data ---
-    mapping (address => uint256) public nonces;
-
-    struct EIP712Domain {
-        string  name;
-        string  version;
-        uint256 chainId;
-        address verifyingContract;
+    // --- Math ---
+    function add(uint x, uint y) internal pure returns (uint z) {
+        require((z = x + y) >= x, "math-add-overflow");
     }
-    struct Permit {
-        address spender;
+    function sub(uint x, uint y) internal pure returns (uint z) {
+        require((z = x - y) <= x, "math-sub-underflow");
     }
 
+    // --- EIP712 niceties ---
     bytes32 public DOMAIN_SEPARATOR;
-    bytes32 constant EIP712DOMAIN_TYPEHASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
-
-    bytes32 constant public permit_TYPEHASH = keccak256(
-        "Permit(address spender)"
+    bytes32 public permit_TYPEHASH = keccak256(
+        "Permit(address spender,uint256 nonce,uint256 deadline,bool allowed)"
     );
 
     constructor(string memory symbol_, string memory name_, string memory version_, uint256 chainId_) public {
         wards[msg.sender] = 1;
         symbol = symbol_;
         name = name_;
-        balanceOf[address(0)] = uint(-1);
-        DOMAIN_SEPARATOR = hash(EIP712Domain({
-            name : "Dai Automated Clearing House",
-                version: version_,
-                chainId: chainId_,
-                verifyingContract: address(this)}
+        DOMAIN_SEPARATOR = keccak256(abi.encode(
+            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+            keccak256(bytes("Dai Semi-Automated Permit Office")),
+            keccak256(bytes(version_)),
+            chainId_,
+            address(this)
         ));
     }
 
-    // --- Math ---
-    function add(uint x, uint y) internal pure returns (uint z) {
-        z = x + y;
-        require(z >= x, "math-add-overflow");
+    // --- Approval by signature ---
+    function record(address spender, uint256 nonce, uint256 deadline,
+                    bool allowed, uint8 v, bytes32 r, bytes32 s) public
+    {
+        bytes32 digest =
+            keccak256(abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(abi.encode(permit_TYPEHASH,
+                                     spender,
+                                     nonce,
+                                     deadline,
+                                     allowed))
+        ));
+        address holder = ecrecover(digest, v, r, s);
+        require(deadline == 0 || deadline < now);
+        require(nonce == ++nonces[holder]);
+        uint wad = allowed ? uint(-1) : 0;
+        allowance[holder][spender] = wad;
+        emit Approval(holder, spender, wad);
     }
-
-    function sub(uint x, uint y) internal pure returns (uint z) {
-        z = x - y;
-        require(z <= x, "math-sub-underflow");
-    }
-
-    // --- ERC20 ---
-    function move(address src, address dst, uint wad) internal {
-        balanceOf[src] = sub(balanceOf[src], wad);
-        balanceOf[dst] = add(balanceOf[dst], wad);
-        emit Transfer(src, dst, wad);
-    }
-
-    function approve(address guy, uint wad) public returns (bool) {
-        allowance[msg.sender][guy] = wad;
-        emit Approval(msg.sender, guy, wad);
+    function approve(address usr, uint wad) public returns (bool) {
+        allowance[msg.sender][usr] = wad;
+        emit Approval(msg.sender, usr, wad);
         return true;
     }
     function transfer(address dst, uint wad) public returns (bool) {
-        move(msg.sender, dst, wad);
+        transferFrom(msg.sender, dst, wad);
         return true;
     }
     function transferFrom(address src, address dst, uint wad)
@@ -101,58 +98,22 @@ contract ERC20 {
         if (src != msg.sender && allowance[src][msg.sender] != uint(-1)) {
             allowance[src][msg.sender] = sub(allowance[src][msg.sender], wad);
         }
-        move(src, dst, wad);
+        balanceOf[src] = sub(balanceOf[src], wad);
+        balanceOf[dst] = add(balanceOf[dst], wad);
+        emit Transfer(src, dst, wad);
         return true;
     }
-
-    // --- Minting and burning ---
-    function mint(address guy, uint wad) public auth {
-        move(address(0), guy, wad);
+    function mint(address usr, uint wad) public auth {
+        balanceOf[usr] = add(balanceOf[usr], wad);
+        totalSupply    = add(totalSupply, wad);
+        emit Transfer(address(0), usr, wad);
     }
-    function totalSupply() public returns (uint256) {
-      return sub(uint(-1), balanceOf[address(0)]);
+    function burn(address usr, uint wad) public {
+        if (usr != msg.sender && allowance[usr][msg.sender] != uint(-1)) {
+            allowance[usr][msg.sender] = sub(allowance[usr][msg.sender], wad);
+        }
+        balanceOf[usr] = sub(balanceOf[usr], wad);
+        totalSupply    = sub(totalSupply, wad);
+        emit Transfer(usr, address(0), wad);
     }
-    function burn(address guy, uint wad) public {
-        transferFrom(guy, address(0), wad);
-    }
-
-    // --- EIP712 niceties ---
-    function hash(EIP712Domain memory eip712Domain) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            EIP712DOMAIN_TYPEHASH,
-            keccak256(bytes(eip712Domain.name)),
-            keccak256(bytes(eip712Domain.version)),
-            eip712Domain.chainId,
-            eip712Domain.verifyingContract
-        ));
-    }
-
-    function hash(Permit memory permit) internal pure returns (bytes32) {
-        return keccak256(abi.encode(
-            permit_TYPEHASH,
-            permit.spender,
-        ));
-    }
-
-    function recover(Permit memory permit, uint8 v, bytes32 r, bytes32 s) internal view returns (bool) {
-        bytes32 digest = keccak256(abi.encodePacked(
-                        "\x19\x01",
-                        DOMAIN_SEPARATOR,
-                        hash(permit)
-        ));
-        return ecrecover(digest, v, r, s);
-    }
-
-    function verify(Permit memory permit, uint8 v, bytes32 r, bytes32 s) internal view returns (bool) {
-        return recover(permit, v, r, s) == permit.spender;
-    }
-
-    // --- Approval by signature ---
-    function allow(address spender_, uint8 v, bytes32 r, bytes32 s) public {
-        Permit memory permit = Permit({
-            spender  : spender_,
-        });
-        require(verify(permit, v, r, s), "invalid permit");
-        allowance[holder][spender_] = uint(-1);
-  }
 }
