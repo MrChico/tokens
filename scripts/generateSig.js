@@ -8,7 +8,7 @@ const calprivKeyHex = '4af1bceebf7f3634ec3cff8a2c38e51178d5d4ce585c52d6043e5e2cc
 const calprivKey = new Buffer(calprivKeyHex, 'hex')
 const cal = ethUtil.privateToAddress(calprivKey);
 const del = new Buffer('dd2d5d3f7f1b35b7a0601d6a00dbb7d44af58479', 'hex');
-const dai = new Buffer('dadadadadadadadadadadadadadadadadadadada', 'hex');
+const dai = new Buffer('E58d97b6622134C0436d60daeE7FBB8b965D9713', 'hex');
 console.log('cals address: ' + '0x' + cal.toString('hex'));
 console.log('dels address: ' + '0x' + del.toString('hex'));
 let typedData = {
@@ -23,22 +23,22 @@ let typedData = {
           { name: 'holder', type: 'address' }, 
           { name: 'spender', type: 'address' },
           { name: 'nonce', type: 'uint256' },
-          { name: 'deadline', type: 'uint256' },
+          { name: 'expiry', type: 'uint256' },
           { name: 'allowed', type: 'bool' },
       ],
   },
   primaryType: 'Permit',
   domain: {
-      name: 'Dai Semi-Automated Permit Office',
+      name: 'Dai Stablecoin',
       version: '1',
-      chainId: 1,
-      verifyingContract: '0xdb356e865aaafa1e37764121ea9e801af13eeb83', //in hevm
+      chainId: 99,
+      verifyingContract: '0xE58d97b6622134C0436d60daeE7FBB8b965D9713', //in hevm
   },
   message: {
       holder: '0x'+cal.toString('hex'),
       spender: '0x'+del.toString('hex'),
       nonce: 0,
-      deadline: 0,
+      expiry: 604411200 + 3600,
       allowed: true
   },
 };
