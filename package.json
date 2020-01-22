@@ -1,0 +1,23 @@
+{
+  "name": "tokens",
+  "version": "1.0.0",
+  "description": "Token Utilities",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+    "ethereumjs-util": "^6.2.0",
+    "eth-sig-util": "^2.5.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MrChico/tokens.git"
+  },
+  "license": "AGPL-3.0"
+}
