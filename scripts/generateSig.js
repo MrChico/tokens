@@ -5,10 +5,10 @@ const utils = sigUtil.TypedDataUtils;
 //Our lad Cal wants to send 2 dai to del, by signing a cheque and paying a 1 dai fee to msg.sender
 
 const calprivKeyHex = '4af1bceebf7f3634ec3cff8a2c38e51178d5d4ce585c52d6043e5e2cc3418bb0'
-const calprivKey = new Buffer(calprivKeyHex, 'hex')
+const calprivKey = new Buffer.from(calprivKeyHex, 'hex')
 const cal = ethUtil.privateToAddress(calprivKey);
-const del = new Buffer('dd2d5d3f7f1b35b7a0601d6a00dbb7d44af58479', 'hex');
-const dai = new Buffer('E58d97b6622134C0436d60daeE7FBB8b965D9713', 'hex');
+const del = new Buffer.from('dd2d5d3f7f1b35b7a0601d6a00dbb7d44af58479', 'hex');
+const dai = new Buffer.from('E58d97b6622134C0436d60daeE7FBB8b965D9713', 'hex');
 console.log('cals address: ' + '0x' + cal.toString('hex'));
 console.log('dels address: ' + '0x' + del.toString('hex'));
 let typedData = {
@@ -20,7 +20,7 @@ let typedData = {
           { name: 'verifyingContract', type: 'address' },
       ],
     Permit: [
-          { name: 'holder', type: 'address' }, 
+          { name: 'holder', type: 'address' },
           { name: 'spender', type: 'address' },
           { name: 'nonce', type: 'uint256' },
           { name: 'expiry', type: 'uint256' },
